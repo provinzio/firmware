@@ -2160,6 +2160,9 @@ static macro_result_t processCommand(const char* cmd, const char* cmdEnd)
             else if (TokenMatches(cmd, cmdEnd, "activateKeyPostponed")) {
                 return processActivateKeyPostponedCommand(arg1, cmdEnd);
             }
+            else if (TokenMatches(cmd, cmdEnd, "adjust")) {
+                return MacroSetCommand(arg1, cmdEnd, SetMode_Adjust);
+            }
             else {
                 goto failed;
             }
@@ -2595,7 +2598,7 @@ static macro_result_t processCommand(const char* cmd, const char* cmdEnd)
                 return processSetStatusCommand(arg1, cmdEnd, false);
             }
             else if (TokenMatches(cmd, cmdEnd, "set")) {
-                return MacroSetCommand(arg1, cmdEnd);
+                return MacroSetCommand(arg1, cmdEnd, SetMode_Set);
             }
             else if (TokenMatches(cmd, cmdEnd, "setStatus")) {
                 return processSetStatusCommand(arg1, cmdEnd, true);
@@ -2677,6 +2680,9 @@ static macro_result_t processCommand(const char* cmd, const char* cmdEnd)
             else if (TokenMatches(cmd, cmdEnd, "tapKeySeq")) {
                 return processTapKeySeqCommand(arg1, cmdEnd);
             }
+            else if (TokenMatches(cmd, cmdEnd, "toggle")) {
+                return MacroSetCommand(arg1, cmdEnd, SetMode_Toggle);
+            }
             else {
                 goto failed;
             }
@@ -2737,6 +2743,14 @@ static macro_result_t processStockCommandAction(const char* cmd, const char* cmd
     while(*cmd && cmd < cmdEnd) {
         const char* arg1 = NextTok(cmd, cmdEnd);
         switch(*cmd) {
+        case 'a':
+            if (TokenMatches(cmd, cmdEnd, "adjust")) {
+                return MacroSetCommand(arg1, cmdEnd, SetMode_Adjust);
+            }
+            else {
+                goto failed;
+            }
+            break;
         case 'p':
             if (TokenMatches(cmd, cmdEnd, "printStatus")) {
                 return processPrintStatusCommand();
@@ -2747,7 +2761,15 @@ static macro_result_t processStockCommandAction(const char* cmd, const char* cmd
             break;
         case 's':
             if (TokenMatches(cmd, cmdEnd, "set")) {
-                return MacroSetCommand(arg1, cmdEnd);
+                return MacroSetCommand(arg1, cmdEnd, SetMode_Set);
+            }
+            else {
+                goto failed;
+            }
+            break;
+        case 't':
+            if (TokenMatches(cmd, cmdEnd, "toggle")) {
+                return MacroSetCommand(arg1, cmdEnd, SetMode_Toggle);
             }
             else {
                 goto failed;

@@ -18,6 +18,8 @@
 #include "config_parser/parse_macro.h"
 #include "slave_drivers/is31fl3xxx_driver.h"
 
+static set_mode_t currentMode = SetMode_Set;
+
 static const char* proceedByDot(const char* cmd, const char *cmdEnd)
 {
     while(*cmd > 32 && *cmd != '.' && cmd < cmdEnd)    {
@@ -27,6 +29,108 @@ static const char* proceedByDot(const char* cmd, const char *cmdEnd)
         Macros_ReportError("'.' expected", NULL, NULL);
     }
     return cmd+1;
+}
+
+typedef struct {
+    int32_t min;
+    int32_t max;
+} int_range_t;
+
+typedef struct {
+    float min;
+    float max;
+} float_range_t;
+
+const int_range_t Range_Timeout16 = {
+    .min = 0,
+    .max = 65534
+};
+
+const int_range_t Range_Brightness8 = {
+    .min = 0,
+    .max = 255
+};
+
+const float_range_t Range_Float0To10 = {
+    .min = 0.f,
+    .max = 10.0f
+};
+
+static int32_t ProcessInt(
+    int32_t currentValue,
+    const char* arg,
+    const char* textEnd,
+    int_range_t range
+)
+{
+    switch (currentMode) {
+        case SetMode_Set:
+            return Macros_ParseInt(arg, textEnd, NULL);
+            return currentValue;
+        case SetMode_Adjust:
+            {
+                int32_t step = Macros_ParseInt(arg, textEnd, NULL);
+
+                if (step > 0) {
+                    return MIN(currentValue + step, range.max);
+                } else {
+                    return MAX(currentValue + step, range.min);
+                }
+
+                return currentValue;
+            }
+        default:
+        case SetMode_Toggle:
+            Macros_ReportError("Toggle not supported by this command", arg, textEnd);
+            return currentValue;
+    }
+}
+
+static float ProcessFloat(
+    float currentValue,
+    const char* arg,
+    const char* textEnd,
+    float_range_t range
+)
+{
+    switch (currentMode) {
+        case SetMode_Set:
+            return ParseFloat(arg, textEnd);
+        case SetMode_Adjust:
+            {
+                float step = ParseFloat(arg, textEnd);
+                if (step > 0) {
+                    return MIN(currentValue + step, range.max);
+                } else {
+                    return MAX(currentValue + step, range.min);
+                }
+
+            }
+        default:
+        case SetMode_Toggle:
+            Macros_ReportError("Toggle not supported by this command", arg, textEnd);
+            return currentValue;
+    }
+}
+
+static bool ProcessBoolean(
+    bool currentValue,
+    const char* arg,
+    const char* textEnd
+)
+{
+    switch (currentMode) {
+        case SetMode_Set:
+            return Macros_ParseBoolean(arg, textEnd);
+        case SetMode_Toggle:
+            {
+                return !currentValue;
+            }
+        default:
+        case SetMode_Adjust:
+            Macros_ReportError("Adjust not supported by this command", arg, textEnd);
+            return currentValue;
+    }
 }
 
 static void moduleNavigationMode(const char* arg1, const char *textEnd, module_configuration_t* module)
@@ -224,11 +328,11 @@ static void leds(const char* arg1, const char *textEnd)
 {
     const char* value = NextTok(arg1, textEnd);
     if (TokenMatches(arg1, textEnd, "fadeTimeout")) {
-        LedSleepTimeout = 1000*60*Macros_ParseInt(value, textEnd, NULL);
+        LedSleepTimeout = 1000*60*ProcessInt(LedSleepTimeout/1000/60, value, textEnd, Range_Timeout16);
     } else if (TokenMatches(arg1, textEnd, "brightness")) {
-        LedBrightnessMultiplier = ParseFloat(value, textEnd);
+        LedBrightnessMultiplier = ProcessFloat(LedBrightnessMultiplier, value, textEnd, Range_Float0To10);
     } else if (TokenMatches(arg1, textEnd, "enabled")) {
-        LedsEnabled = Macros_ParseBoolean(value, textEnd);
+        LedsEnabled = ProcessBoolean(LedsEnabled, value, textEnd);
     } else {
         Macros_ReportError("parameter not recognized:", arg1, textEnd);
     }
@@ -376,9 +480,19 @@ static void modLayerTriggers(const char* arg1, const char *textEnd)
     }
 }
 
-macro_result_t MacroSetCommand(const char* arg1, const char *textEnd)
+macro_result_t MacroSetCommand(const char* arg1, const char *textEnd, set_mode_t mode)
 {
+    currentMode = mode;
     const char* arg2 = NextTok(arg1, textEnd);
+
+    if (mode != SetMode_Set) {
+        if (TokenMatches(arg1, textEnd, "leds")) {
+            leds(proceedByDot(arg1, textEnd), textEnd);
+        } else {
+            Macros_ReportError("adjust/toggle is not allowed for this section", arg1, textEnd);
+        }
+        return MacroResult_Finished;
+    }
 
     if (TokenMatches(arg1, textEnd, "module")) {
         module(proceedByDot(arg1, textEnd), textEnd);

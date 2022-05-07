@@ -14,9 +14,15 @@
 
 // Typedefs:
 
+   typedef enum {
+       SetMode_Set,
+       SetMode_Toggle,
+       SetMode_Adjust,
+   } set_mode_t;
+
 // Variables:
 
 // Functions:
-    macro_result_t MacroSetCommand(const char* text, const char *textEnd);
+    macro_result_t MacroSetCommand(const char* text, const char *textEnd, set_mode_t mode);
 
 #endif /* __MACRO_SET_COMMAND_H__ */
