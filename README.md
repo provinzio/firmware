@@ -1,34 +1,54 @@
-# Ultimate Hacking Keyboard firmware with extended macro engine
+# UHK Firmware with Extended macro engine 
 
-This is a fork of [UHK firmware](https://github.com/UltimateHackingKeyboard/firmware). This custom firmware provides extended macro engine. Namely, we allow a set of simple commands to be used in text macro actions. These commands can be used to reach functionality otherwise unavailable via agent.
+This fork if UHK firmware extends the keyboard with a "simple" macro language that allows users to customize behaviour of the UHK from user space.
 
-# Overview
-
-## Compatibility
-
-This firmware is 100% compatible with the original unmodified agent. All you need is to flash the modified firmware to your UHK. Configurations won't get lost in case you decide to switch back to official firmware, or if you then again flash the modified version too, since config formats were not altered in any way. (Extended macros will just not work when used within the official firmware, obviously.)
-
-## Features
-
-The firmware implements:
-- macro commands for (almost?) all basic features of the keyboard otherwise unreachable via agent. 
-- macro commands for conditionals, jumps and sync mechanisms 
-- some extended configuration options (composite-keystroke delay, sticky modifiers)
+These include things like:
+- macro commands to switch keymaps (`switchKeymap`) or layers (`holdLayer`, `toggleLayer`), activate keys (`holdKey`, `tapKey`), 
+- some basic conditionals (e.g., `ifCtrl`, `ifDoubletap`), allowing to mimic secondary roles and various timeout scenarios
+- super-simple control flow (basically `goTo` instruction), and commands to activate other macros (`call`, `fork`, `exec`)
+- many configuration options which are not directly exposed by Agent (`set`)
 - runtime macro recorder implemented on scancode level, for vim-like macro functionality
-- ability to run multiple macros at the same time
 
-Some of the usecases which can be achieved via these commands are: 
-- ability to mimic secondary roles 
-- ability to bind actions to doubletaps 
-- ability to bind arbitrary shortcuts or gestures 
-- ability to bind shift and non-shift scancodes independently
-- ability to configure custom layer switching logic, including nested layer toggling 
-- unlimited number of layers via referencing layers of different keymaps 
-- flow control via goto command
-- 32 numeric registers
-- runtime macros
+If you want to give it a try, you should continue at.
 
-# Documentation
+- [Getting started](reference-manual.md)
+- [Reference manual](reference-manual.md)
 
-For more info, please see [MACRO_DOCS.md](MACRO_DOCS.md).
+# Other notes
+
+## Contributing
+
+If you wish some functionality, feel free to fire tickets with feature requests. If you wish something already present on the tracker (e.g., in 'idea' tickets), say so in comments. (Feel totally free to harass me over desired functionality :-).) If you feel brave, fork the repo, implement the desired functionality and post a PR.
+
+## Adding new features
+
+The key file is `usb_report_updater.c` and its `UpdateUsbReports` function. All keyboard logic is driven from here.
+
+Our command actions are rooted in `processCommandAction(...)` in `macros.c`.
+
+If you have any questions regarding the code, simply ask (via tickets or email).
+
+## Building the firmware
+
+If you want to try the firmware out, just download the tar in releases and flash it via Agent. 
+
+If you wish to make changes into the source code, then you indeed need to build your own firmware:
+
+- Clone the repo with `--recursive` flag.
+- Build agent in lib/agent (that is, unmodified official agent), via `npm install && npm run build` in repository root. While doing so, you may run into some problems:
+  - You may need to remove `node_modules` directory for number of unintuitive reasons. E.g., if things just stopped working out of nothing.
+  - You may need to run `npm install` and maybe `npm run build` in various directories - in such cases, it is usually noted in their README.md
+  - You may need to install some packages globally.
+  - You may need to downgrade or upgrade npm: `sudo npm install -g n && sudo n 8.12.0`
+  - You may need to commit changes made by npm in this repo, otherwise, make-release.js will be faililng later.
+  - You may need to offer some sacrifice the node.js gods.
+- Then you can setup mcuxpressoide according to the official firmware README guide. (Optionaly - any C-capable editor of choice will work just fine.)
+- Now you can build and flash firmware either: (No special equipment is needed.)
+  - `make` / `make flash` in `right/uhk60v1`.
+  - Or via mcuxpressoide (debugging probes are not needed, see official firmware README).
+  - Or via running scripts/make-release.js and flashing the resulting tar through agent.
+  
+If you have any problems with the build procedure (especially witn npm), please create issue in the official agent repository. I made no changes into the proccedure and I will most likely not be able to help.
+
+
 
