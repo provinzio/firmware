@@ -1,9 +1,9 @@
-# UHK Firmware with Extended macro engine 
+# UHK Firmware with Extended macro engine
 
-This fork if UHK firmware extends the keyboard with a "simple" macro language that allows users to customize behaviour of the UHK from user space.
+This fork of UHK firmware extends the keyboard with a "simple" macro language that allows users to customize behaviour of the UHK from user space.
 
 These include things like:
-- macro commands to switch keymaps (`switchKeymap`) or layers (`holdLayer`, `toggleLayer`), activate keys (`holdKey`, `tapKey`), 
+- macro commands to switch keymaps (`switchKeymap`) or layers (`holdLayer`, `toggleLayer`), activate keys (`holdKey`, `tapKey`),
 - some basic conditionals (e.g., `ifCtrl`, `ifDoubletap`), allowing to mimic secondary roles and various timeout scenarios
 - super-simple control flow (basically `goTo` instruction), and commands to activate other macros (`call`, `fork`, `exec`)
 - many configuration options which are not directly exposed by Agent (`set`)
@@ -30,7 +30,7 @@ If you have any questions regarding the code, simply ask (via tickets or email).
 
 ## Building the firmware
 
-If you want to try the firmware out, just download the tar in releases and flash it via Agent. 
+If you want to try the firmware out, just download the tar in releases and flash it via Agent.
 
 If you wish to make changes into the source code, then you indeed need to build your own firmware:
 
@@ -47,8 +47,17 @@ If you wish to make changes into the source code, then you indeed need to build 
   - `make` / `make flash` in `right/uhk60v1`.
   - Or via mcuxpressoide (debugging probes are not needed, see official firmware README).
   - Or via running scripts/make-release.js and flashing the resulting tar through agent.
-  
+
 If you have any problems with the build procedure (especially witn npm), please create issue in the official agent repository. I made no changes into the proccedure and I will most likely not be able to help.
+
+## Philosophy
+
+- Functionality of the firmware should consist of small but generic building blocks which can be combined to support new usecases.
+
+- The engine is designed to be super simple and have very small memory footprint.
+
+- The aim of the command interface is mostly to provide direct interface between the user and experimental new features in the firmware. (That is, to bypass the fuss of having to implement new user interface, extending two parses, three different config formats, and ensuring compatibility of it all.) My goal never was to provide a strong scripting language. In this light, I hope that lack of scoping, reasonable control flow, named variables or shunting yard expressions is somewhat understandable.
+
 
 
 
