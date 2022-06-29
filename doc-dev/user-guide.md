@@ -25,10 +25,17 @@ Some of the usecases which can be achieved via these commands are:
 
    Agent is the UHK configuration tool. You can get it at https://github.com/UltimateHackingKeyboard/agent/releases . When you start the Agent up, go to 'firmware' and 'Choose firmware file and flash it'.
 
-2) Create some macro with some command action. For instance:
+2) Create a macro with some command action. For instance:
+
+Use either native command action (if you have an Agent which supports it):
 
     holdKey leftShift
     ifDoubletap tapKey capsLock
+
+Or use the text action and prefix the commands with $:
+
+    $holdKey leftShift
+    $ifDoubletap tapKey capsLock
 
 3) Understand how this guide and the reference manual work:
 
