@@ -1,16 +1,16 @@
 {
   "name": "uhk-firmware",
   "private": true,
-  "homepage": "https://UltimateHackingKeyboard.com",
-  "description": "The firmware of the Ultimate Hacking Keyboard",
+  "homepage": "https://github.com/kareltucek/firmware",
+  "description": "Karel Tucek's fork of the Ultimate Hacking Keyboard firmware",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/UltimateHackingKeyboard/firmware.git"
+    "url": "git+ssh://git@github.com/kareltucek/firmware.git"
   },
-  "author": "Ultimate Gadget Laboratories",
+  "author": "Ultimate Gadget Laboratories, further modified by Karel Tucek",
   "license": "See in LICENSE",
   "bugs": {
-    "url": "https://github.com/UltimateHackingKeyboard/firmware/issues"
+    "url": "https://github.com/kareltucek/firmware/issues"
   },
   "dependencies": {
     "commander": "^2.11.0",
