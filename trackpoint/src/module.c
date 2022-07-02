@@ -29,6 +29,8 @@ void Module_Init(void)
     PORT_SetPinConfig(PS2_DATA_PORT, PS2_DATA_PIN,
                       &(port_pin_config_t){/*.pullSelect=kPORT_PullDown,*/ .mux=kPORT_MuxAsGpio});
     GPIO_PinInit(PS2_DATA_GPIO, PS2_DATA_PIN, &(gpio_pin_config_t){.pinDirection=kGPIO_DigitalInput, .outputLogic=0});
+
+    GPIO_PinInit(GPIOA, 7, &(gpio_pin_config_t){kGPIO_DigitalOutput, 1});
 }
 
 typedef enum {
@@ -38,6 +40,25 @@ typedef enum {
 } should_reset_state_t;
 
 should_reset_state_t shouldReset = ShouldReset_No;
+
+void resetBoard() {
+
+    /*
+    typedef struct {
+        PORT_Type *port;
+        GPIO_Type *gpio;
+        clock_ip_name_t clock;
+        uint32_t pin;
+    } key_matrix_pin_t;
+    */
+
+    GPIO_WritePinOutput(GPIOA, 7, 1);
+    for (volatile uint32_t i=0; i<1000000; i++);
+    GPIO_WritePinOutput(GPIOA, 7, 0);
+    for (volatile uint32_t i=0; i<1000000; i++);
+    GPIO_WritePinOutput(GPIOA, 7, 1);
+}
+
 
 void Module_OnScan(void)
 {
@@ -69,24 +90,6 @@ void requestToSend()
     GPIO_PinInit(PS2_CLOCK_GPIO, PS2_CLOCK_PIN, &(gpio_pin_config_t){.pinDirection=kGPIO_DigitalInput, .outputLogic=0});
 }
 
-
-void resetBoard() {
-
-    /*
-    typedef struct {
-        PORT_Type *port;
-        GPIO_Type *gpio;
-        clock_ip_name_t clock;
-        uint32_t pin;
-    } key_matrix_pin_t;
-    */
-
-    GPIO_WritePinOutput(GPIOA, 7, 0);
-    for (volatile uint32_t i=0; i<1000000; i++);
-    GPIO_WritePinOutput(GPIOA, 7, 1);
-    for (volatile uint32_t i=0; i<1000000; i++);
-    GPIO_WritePinOutput(GPIOA, 7, 0);
-}
 
 bool clockValue = 0;
 bool bitValue = 0;
@@ -318,7 +321,7 @@ void PS2_CLOCK_IRQ_HANDLER(void) {
 
         // Request calibration
         RQ_TO_SEND(10);
-        WRITE_BYTE(11, 0xf0); // Force calibration byte1
+        WRITE_BYTE(11, 0xf0); // Disable streaming mode
         READ_BYTE(12, 0xfa);  // ACK
         case 13:
         RQ_TO_SEND(19);
