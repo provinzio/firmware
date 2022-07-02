@@ -69,6 +69,25 @@ void requestToSend()
     GPIO_PinInit(PS2_CLOCK_GPIO, PS2_CLOCK_PIN, &(gpio_pin_config_t){.pinDirection=kGPIO_DigitalInput, .outputLogic=0});
 }
 
+
+void resetBoard() {
+
+    /*
+    typedef struct {
+        PORT_Type *port;
+        GPIO_Type *gpio;
+        clock_ip_name_t clock;
+        uint32_t pin;
+    } key_matrix_pin_t;
+    */
+
+    GPIO_WritePinOutput(GPIOA, 7, 0);
+    for (volatile uint32_t i=0; i<1000000; i++);
+    GPIO_WritePinOutput(GPIOA, 7, 1);
+    for (volatile uint32_t i=0; i<1000000; i++);
+    GPIO_WritePinOutput(GPIOA, 7, 0);
+}
+
 bool clockValue = 0;
 bool bitValue = 0;
 uint8_t bitId = 0;
@@ -286,8 +305,10 @@ void PS2_CLOCK_IRQ_HANDLER(void) {
                 }
                 errno = 0;
                 if (shouldReset == ShouldReset_Yes) {
+                    resetBoard();
                     shouldReset = ShouldReset_Done;
                     phase = 1;
+
                 } else {
                     phase = 7;
                 }
