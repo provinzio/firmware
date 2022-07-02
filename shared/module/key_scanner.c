@@ -1,6 +1,7 @@
 #include "fsl_lptmr.h"
 #include "key_scanner.h"
 #include "module/i2c_watchdog.h"
+#include "module.h"
 
 void KEY_SCANNER_HANDLER(void)
 {
@@ -9,6 +10,7 @@ void KEY_SCANNER_HANDLER(void)
     #elif KEY_ARRAY_TYPE == KEY_ARRAY_TYPE_MATRIX
         KeyMatrix_ScanRow(&KeyMatrix);
     #endif
+    Module_OnScan();
     RunWatchdog();
     LPTMR_ClearStatusFlags(KEY_SCANNER_LPTMR_BASEADDR, kLPTMR_TimerCompareFlag);
 }

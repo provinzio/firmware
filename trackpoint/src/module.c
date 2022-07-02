@@ -31,6 +31,27 @@ void Module_Init(void)
     GPIO_PinInit(PS2_DATA_GPIO, PS2_DATA_PIN, &(gpio_pin_config_t){.pinDirection=kGPIO_DigitalInput, .outputLogic=0});
 }
 
+typedef enum {
+    ShouldReset_No,
+    ShouldReset_Yes,
+    ShouldReset_Done,
+} should_reset_state_t;
+
+should_reset_state_t shouldReset = ShouldReset_No;
+
+void Module_OnScan(void)
+{
+    bool bothButtonsPressed = KeyVector.keyStates[0] && KeyVector.keyStates[1];
+
+    if (bothButtonsPressed && shouldReset == ShouldReset_No) {
+        shouldReset = ShouldReset_Yes;
+    }
+
+    if (!bothButtonsPressed && shouldReset == ShouldReset_Done) {
+        shouldReset = ShouldReset_No;
+    }
+}
+
 uint8_t phase = 0;
 uint32_t transitionCount = 1;
 uint8_t errno = 0;
@@ -133,6 +154,39 @@ static bool readByte()
     return false;
 }
 
+
+#define RQ_TO_SEND(AT)      \
+        case AT: {                    \
+            requestToSend();          \
+            phase = AT+1;               \
+            break;                    \
+        }
+
+#define WRITE_BYTE(AT, BYTE)       \
+        case AT: {                    \
+            buffer = BYTE;            \
+            if (writeByte()) {        \
+                phase = AT+1;           \
+            }                         \
+            break;                    \
+        }
+
+int16_t errorCode = 0;
+
+#define READ_BYTE(AT, BYTE)       \
+        case AT: {                    \
+            if (readByte()) {        \
+                phase = AT+1;           \
+                if (buffer != BYTE) { \
+                    errorCode = 256+buffer; \
+                    phase=30;\
+                    /* reportError(1); \ */ \
+                } \
+            }                         \
+            break;                    \
+        }
+
+
 void PS2_CLOCK_IRQ_HANDLER(void) {
     static uint8_t byte1 = 0;
     static uint16_t deltaX = 0;
@@ -162,6 +216,7 @@ void PS2_CLOCK_IRQ_HANDLER(void) {
     }
 
     switch (phase) {
+        // disregard first two bytes
         case 0: {
             transitionCount++;
             if (transitionCount == 22) {
@@ -169,46 +224,23 @@ void PS2_CLOCK_IRQ_HANDLER(void) {
             }
             break;
         }
-        case 1: {
-            requestToSend();
-            buffer = 0xff;
-            phase = 2;
-            break;
-        }
-        case 2: {
-            if (writeByte()) {
-                transitionCount = 0;
-                phase = 3;
-            }
-            break;
-        }
-        case 3: {
-            if (readByte()) {
-                phase = 4;
-            }
-            break;
-        }
-        case 4: {
-            requestToSend();
-            buffer = 0xf4;
-            phase = 5;
-            break;
-        }
-        case 5: {
-            if (writeByte()) {
-                phase = 6;
-            }
-            break;
-        }
-        case 6: {
-            if (readByte()) { // read ACK
-                phase = 7;
-                if ( buffer != 0xfa ) {
-                    reportError(1);
-                }
-            }
-            break;
-        }
+
+        // Issue reset command.
+        // (datasheet claims there should be 2, so we probably have wrong datasheet...)
+        RQ_TO_SEND(1);
+        WRITE_BYTE(2, 0xff); //Reset
+        READ_BYTE(3, 0xfa); //ACK
+
+        // Request switch to streaming, and confirm receiving ACK
+        case 24:
+        RQ_TO_SEND(4);
+        WRITE_BYTE(5, 0xf4); //Enable
+        READ_BYTE(6, 0xfa); //ACK
+
+        // Listen for streamed data. Each packet consists of 3 bytes:
+        // - status data
+        // - x delta
+        // - y delta
         case 7: {
             if (readByte()) {
                 if ((buffer & 0xc8) == 0x08) {
@@ -221,6 +253,8 @@ void PS2_CLOCK_IRQ_HANDLER(void) {
                     // and report the errno.
                     reportError(2);
                     phase = 1;
+                    errorCode = 512+buffer; \
+                    phase = 30;
                 }
             }
             break;
@@ -243,18 +277,40 @@ void PS2_CLOCK_IRQ_HANDLER(void) {
                 }
                 if ( errno == 0 ) {
                     PointerDelta.x -= deltaX;
-                    PointerDelta.y -= deltaY;
+                    //PointerDelta.y -= deltaY;
                     lastX = deltaX;
                     lastY = deltaY;
                 } else {
                     PointerDelta.x -= lastX;
-                    PointerDelta.y -= lastY;
+                    //PointerDelta.y -= lastY;
                 }
                 errno = 0;
-                phase = 7;
+                if (shouldReset == ShouldReset_Yes) {
+                    shouldReset = ShouldReset_Done;
+                    phase = 1;
+                } else {
+                    phase = 7;
+                }
             }
             break;
         }
+
+        // Request calibration
+        RQ_TO_SEND(10);
+        WRITE_BYTE(11, 0xf0); // Force calibration byte1
+        READ_BYTE(12, 0xfa);  // ACK
+        case 13:
+        RQ_TO_SEND(19);
+        WRITE_BYTE(20, 0xe2); // Force calibration byte1
+        RQ_TO_SEND(21);
+        WRITE_BYTE(22, 0x51); // Force calibration byte2
+        READ_BYTE(23, 0xfa);  // ACK
+        //READ_BYTE(24, 0xff);  // ACK
+
+        case 30: {
+                    PointerDelta.y = errorCode;
+                    return;
+                 }
     }
 }
 

@@ -47,5 +47,6 @@
 
     void Module_Init(void);
     void Module_Loop(void);
+    void Module_OnScan(void);
 
 #endif
