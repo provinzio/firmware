@@ -11,7 +11,7 @@ These include things like:
 
 If you want to give it a try, you should continue at.
 
-- [Getting started](doc-dev/reference-manual.md)
+- [Getting started](doc-dev/user-guide.md)
 - [Reference manual](doc-dev/reference-manual.md)
 
 # Other notes
